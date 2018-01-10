@@ -1,4 +1,4 @@
-# GoProxy
+# MultiProxy
 
 A small multi-domain reverse Http proxy in Go.
 
