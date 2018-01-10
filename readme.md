@@ -1,6 +1,6 @@
 # MultiProxy
 
-A small multi-domain reverse Http proxy in Go.
+A small multi-domain reverse proxy in Go.
 
 For when Apache/Nginx is too much.
 
