@@ -7,7 +7,7 @@ For when Apache/Nginx is too much.
 ### Usage
 
 ```go
-import "github.com/nickbarth/multi"
+import "github.com/nickbarth/multiproxy"
 
 func main() {
 	fmt.Println("MultiProxy Started.")
