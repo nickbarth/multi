@@ -1,53 +1,53 @@
 package main
 
 import (
-    "bufio"
-    "fmt"
-    "log"
-    "net/http"
-    "net/http/httputil"
-    "net/url"
-    "os"
-    "strings"
+	"fmt"
+	"log"
+	"net/http"
+	"net/http/httputil"
+	"net/url"
 )
 
-func handler(p map[string]*httputil.ReverseProxy) http.HandlerFunc {
-    return func(w http.ResponseWriter, r *http.Request) {
-        if _, exists := p[r.Host]; exists {
-            p[r.Host].ServeHTTP(w, r)
-        } else {
-            fmt.Fprintf(w, "Not Found.\n")
-        }
-    }
+type HostMap struct {
+	host   string
+	target string
+}
+
+type MultiProxy struct {
+	addr  string
+	hosts map[string]*httputil.ReverseProxy
+}
+
+func NewMultiProxy(addr string) *MultiProxy {
+	return &MultiProxy{
+		addr:  addr,
+		hosts: make(map[string]*httputil.ReverseProxy),
+	}
+}
+
+func (t *MultiProxy) AddHost(p HostMap) {
+	fmt.Printf("`%v` :: `%v`\n", p.host, p.target)
+	server, _ := url.Parse(p.target)
+	t.hosts[p.host] = httputil.NewSingleHostReverseProxy(&url.URL{Scheme: server.Scheme, Host: server.Host})
+}
+
+func (t MultiProxy) Run() error {
+	err := http.ListenAndServe(t.addr, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if _, exists := t.hosts[r.Host]; exists {
+			t.hosts[r.Host].ServeHTTP(w, r)
+		}
+	}))
+
+	return err
 }
 
 func main() {
-    proxies := map[string]*httputil.ReverseProxy{}
-
-    file, err := os.Open("router.config")
-    if err != nil {
-        log.Fatal(err)
-    }
-    defer file.Close()
-
-    scanner := bufio.NewScanner(file)
-    for scanner.Scan() {
-        line := scanner.Text()
-        config := strings.Split(line, "|")
-        port, host := config[0], config[1]
-
-        remote, err := url.Parse(host)
-        if err != nil {
-            log.Fatal(err)
-        }
-
-        proxies[remote.Host] = httputil.NewSingleHostReverseProxy(&url.URL{Scheme: remote.Scheme, Host: "localhost:" + port})
-        fmt.Println(port + " " + remote.Scheme + " " + remote.Host)
-    }
-
-    if err := scanner.Err(); err != nil {
-        log.Fatal(err)
-    }
-
-    log.Fatal(http.ListenAndServe(":80", handler(proxies)))
+	fmt.Println("MultiProxy Started.")
+	proxy := NewMultiProxy(":8000")
+	proxy.AddHost(HostMap{host: "example.com", target: "http://localhost:9000"})
+	proxy.AddHost(HostMap{host: "example.org", target: "http://localhost:9001"})
+	err := proxy.Run()
+	if err != nil {
+		log.Fatal(err)
+	}
 }
