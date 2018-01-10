@@ -7,6 +7,8 @@ For when Apache/Nginx is too much.
 ### Usage
 
 ```go
+import "github.com/nickbarth/multi"
+
 func main() {
 	fmt.Println("MultiProxy Started.")
 	proxy := multi.NewMultiProxy(":8000")
